@@ -1,0 +1,66 @@
+import codecademylib3
+import pandas as pd
+
+ad_clicks = pd.read_csv('ad_clicks.csv')
+#performing A/B Test. Which version od the ad works better? A or B?
+
+#1.examine the data
+print(ad_clicks.head(10))
+
+#2.how many views came from each utm_source
+count_utm_source = ad_clicks.groupby('utm_source').user_id.count().reset_index()
+print(count_utm_source)
+
+#3.creating is_click column with boolean condition
+ad_clicks['is_click'] = ~ad_clicks.ad_click_timestamp.isnull()
+print(ad_clicks.head(10))
+
+#4.the percent of people who clicked on ads from each utm_source
+clicks_by_source = ad_clicks.groupby(['utm_source', 'is_click']).user_id.count().reset_index()
+print(clicks_by_source)
+
+#5.pivot the data
+clicks_pivot = clicks_by_source.pivot(columns = 'is_click',\
+index = 'utm_source',
+values = 'user_id')
+print(clicks_pivot)
+
+#6.the percent of people who clicked on ads from each utm_source
+ad_clicks['percent_clicked'] = clicks_pivot[True] / (clicks_pivot[True] + clicks_pivot[False])
+print(clicks_pivot)
+
+#7.Comparing results for A and B
+print(ad_clicks.groupby(['experimental_group', 'is_click']).user_id.count().reset_index()\
+.pivot(columns = 'is_click',\
+       index = 'experimental_group',\
+       values = 'user_id')\
+       .reset_index()\
+       )
+
+#8. if a greater percentage of users clicked on Ad A or Ad
+
+a_clicks = ad_clicks[ad_clicks.experimental_group == 'A']
+b_clicks = ad_clicks[ad_clicks.experimental_group == 'B']
+
+#Ad_A
+a_clicks_pivot = a_clicks.groupby(['is_click', 'day']).user_id.count().reset_index()\
+.pivot(columns = 'is_click',\
+       index = 'day',\
+       values = 'user_id')\
+       .reset_index()
+
+a_clicks_pivot['Percent_Clicked'] = a_clicks_pivot[True] / (a_clicks_pivot[True] + a_clicks_pivot[False])
+print(a_clicks_pivot)
+
+
+#Ad_B  
+b_clicks_pivot = b_clicks.groupby(['is_click', 'day']).user_id.count().reset_index()\
+.pivot(columns = 'is_click',\
+       index = 'day',\
+       values = 'user_id')\
+       .reset_index()
+
+b_clicks_pivot['Percent_Clicked'] = b_clicks_pivot[True] / (b_clicks_pivot[True] + b_clicks_pivot[False])
+print(b_clicks_pivot) 
+
+#Comparing the results of the A/B experiement we can see that the A version of our AD works better that the B version. Only on Tuesdays the version B was clicked more times than the version A.
